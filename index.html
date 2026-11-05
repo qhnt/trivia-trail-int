@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Trivia Trail</title>
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgNjQiIHdpZHRoPSIxMDAiIGhlaWdodD0iNjQiPjxnIHN0cm9rZT0iIzJiMjM1MCIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cG9seWdvbiBwb2ludHM9IjMsMyAzMywzIDQzLDMyIDMzLDYxIDMsNjEgMTMsMzIiIGZpbGw9IiMwMDhiYTAiLz48cG9seWdvbiBwb2ludHM9IjMxLDMgNjEsMyA3MSwzMiA2MSw2MSAzMSw2MSA0MSwzMiIgZmlsbD0iIzVkNGZlMCIvPjxwb2x5Z29uIHBvaW50cz0iNTksMyA4OSwzIDk5LDMyIDg5LDYxIDU5LDYxIDY5LDMyIiBmaWxsPSIjZTg2NjNkIi8+PC9nPjwvc3ZnPg==">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal: #008ba0;
+    --violet: #5d4fe0;
+    --gold: #d9a22c;
+    --coral: #e8663d;
+    --green: #4caf6d;
+    --ink: #2b2350;
+    --sky: #dff1f5;
+    --sky-deep: #c6e6ee;
+    --card: #ffffff;
+    --display: "Baloo 2", "Trebuchet MS", "Segoe UI Rounded", system-ui, sans-serif;
+    --body: "Nunito", "Trebuchet MS", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: var(--body);
+    font-weight: 400;
+    color: var(--ink);
+    background:
+      radial-gradient(ellipse 220px 70px at 12% 8%, #fff 60%, transparent 62%),
+      radial-gradient(ellipse 280px 80px at 88% 14%, #fff 60%, transparent 62%),
+      radial-gradient(ellipse 200px 60px at 70% 92%, #fff 60%, transparent 62%),
+      linear-gradient(var(--sky), var(--sky-deep));
+    background-attachment: fixed;
+    min-height: 100vh;
+    padding: 20px 16px 40px;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+
+  h1 {
+    font-family: var(--display);
+    font-weight: 800;
+    font-size: clamp(2.2rem, 6vw, 3.6rem);
+    line-height: 1;
+    margin: 6px 0 8px;
+    letter-spacing: -0.01em;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 0 .3em;
+  }
+  h1 .logo { height: 1.15em; width: auto; display: block; margin-right: .1em; }
+  h1 .w1 { color: var(--teal); }
+  h1 .w2 { color: var(--violet); }
+  .tag { margin: 0 0 18px; font-size: 1.05rem; max-width: 56ch; }
+
+  .layout { display: grid; grid-template-columns: 1fr; gap: 20px; }
+  @media (min-width: 900px) { .layout { grid-template-columns: minmax(0, 1.5fr) minmax(300px, 1fr); align-items: start; } }
+
+  .sticker {
+    background: var(--card);
+    border: 3px solid var(--ink);
+    border-radius: 22px;
+    box-shadow: 6px 6px 0 var(--ink);
+  }
+
+  /* ---------- Board ---------- */
+  .board-card { padding: 16px; }
+  .board {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px 6px;
+  }
+  /* Wrapper carries the offset shadow; .chev carries the clipped shape */
+  .sq {
+    position: relative;
+    aspect-ratio: 1.15;
+    filter: drop-shadow(0 4px 0 var(--ink));
+    transition: transform .15s ease, filter .15s ease;
+  }
+  .chev, .chev::before {
+    position: absolute; inset: 0;
+    clip-path: polygon(0 0, 76% 0, 100% 50%, 76% 100%, 0 100%, 24% 50%);
+  }
+  .chev { background: var(--ink); }
+  .chev::before { content: ""; inset: 3px; background: var(--fill); }
+  .sq.left .chev, .sq.left .chev::before {
+    clip-path: polygon(24% 0, 100% 0, 76% 50%, 100% 100%, 24% 100%, 0 50%);
+  }
+  /* Checkered finish line */
+  .sq.finish .chev::before {
+    background: conic-gradient(var(--ink) 25%, #fff 0 50%, var(--ink) 0 75%, #fff 0) 0 0 / 26px 26px;
+  }
+  .sq .flag {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    font-size: 1.3rem; line-height: 1; z-index: 1;
+  }
+  .sq.target { transform: translateY(-4px); filter: drop-shadow(0 8px 0 var(--ink)); }
+  .c0 { --fill: var(--teal); }
+  .c1 { --fill: var(--violet); }
+  .c2 { --fill: var(--gold); }
+  .c3 { --fill: var(--coral); }
+  .c4 { --fill: var(--green); }
+
+  .piece {
+    position: absolute;
+    width: 0; height: 0;
+    z-index: 5;
+    pointer-events: none;
+    transition: left .2s ease, top .2s ease;
+  }
+  .piece .body {
+    position: absolute; left: -19px; top: -30px;
+    width: 38px; height: 38px;
+    background: #fff; border: 3px solid var(--ink);
+    border-radius: 50% 50% 46% 46%;
+    box-shadow: 0 4px 0 var(--ink);
+  }
+  .piece .body::before, .piece .body::after {
+    content: ""; position: absolute; top: 12px;
+    width: 5px; height: 7px; background: var(--ink); border-radius: 50%;
+  }
+  .piece .body::before { left: 8px; }
+  .piece .body::after { right: 8px; }
+  .piece .smile {
+    position: absolute; left: 11px; top: 21px; width: 12px; height: 6px;
+    border-bottom: 3px solid var(--ink); border-radius: 0 0 12px 12px;
+  }
+  .piece .name {
+    position: absolute; left: 50%; top: -52px; transform: translateX(-50%);
+    background: var(--ink); color: #fff;
+    font-family: var(--display); font-size: .72rem; font-weight: 700;
+    padding: 1px 8px; border-radius: 999px; white-space: nowrap;
+  }
+  .piece.hop .body { animation: hop .2s ease; }
+  @keyframes hop { 50% { transform: translateY(-14px); } }
+
+  /* ---------- Side panel ---------- */
+  .side { display: grid; gap: 20px; }
+  .status { padding: 18px; }
+  .turn {
+    font-family: var(--display); font-weight: 800; font-size: 1.7rem; line-height: 1.1; margin: 0 0 4px;
+  }
+  .turn em { font-style: normal; color: var(--violet); }
+  .stats { display: flex; gap: 8px; margin: 10px 0 14px; flex-wrap: wrap; }
+  .stat { background: var(--sky); border: 2px solid var(--ink); border-radius: 999px; padding: 3px 12px; font-size: .88rem; }
+  .stat.moves { background: var(--gold); font-weight: 800; }
+  .stat[hidden] { display: none; }
+
+  .cardbox {
+    min-height: 92px;
+    border: 3px dashed var(--ink);
+    border-radius: 16px;
+    padding: 12px;
+    background: #fbfbff;
+    display: flex; flex-direction: column; gap: 8px; justify-content: center;
+  }
+  .cardbox p { margin: 0; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    font-family: var(--display); font-weight: 700; font-size: 1rem;
+    color: #fff; border: 3px solid var(--ink); border-radius: 999px;
+    padding: 6px 14px; box-shadow: 0 3px 0 var(--ink);
+    text-shadow: 0 1px 0 rgba(0,0,0,.35);
+  }
+  .chip.gold-chip { color: var(--ink); text-shadow: none; }
+
+  .draw {
+    margin-top: 14px; width: 100%;
+    font-family: var(--display); font-weight: 800; font-size: 1.4rem;
+    color: #fff; background: var(--coral);
+    border: 3px solid var(--ink); border-radius: 16px;
+    padding: 12px; cursor: pointer;
+    box-shadow: 0 6px 0 var(--ink);
+    transition: transform .1s ease, box-shadow .1s ease;
+  }
+  .draw:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 0 var(--ink); }
+  .draw:active:not(:disabled) { transform: translateY(5px); box-shadow: 0 1px 0 var(--ink); }
+  .draw:disabled { background: #c9c4d9; cursor: not-allowed; }
+  .draw[hidden] { display: none; }
+
+  .question { padding: 18px; }
+  .question[hidden] { display: none; }
+  .qtext { font-family: var(--display); font-weight: 700; font-size: 1.3rem; line-height: 1.25; margin: 0 0 12px; }
+  .answers { display: grid; gap: 8px; }
+  .ans {
+    text-align: left; font: inherit; font-weight: 700; color: var(--ink);
+    background: #fff; border: 3px solid var(--ink); border-radius: 12px;
+    padding: 10px 14px; cursor: pointer; box-shadow: 0 3px 0 var(--ink);
+  }
+  .ans:hover:not(:disabled) { background: var(--sky); }
+  .ans:disabled { cursor: default; }
+  .ans.right { background: #bfeccd; }
+  .ans.wrong { background: #ffd0c2; }
+  .feedback { margin: 12px 0 0; font-weight: 700; }
+
+  .again {
+    margin-top: 12px; font-family: var(--display); font-weight: 800; font-size: 1.1rem;
+    background: var(--green); color: #fff; border: 3px solid var(--ink); border-radius: 14px;
+    padding: 8px 18px; cursor: pointer; box-shadow: 0 4px 0 var(--ink);
+  }
+  .again[hidden] { display: none; }
+
+
+  /* ---------- Effects ---------- */
+  #fx { position: fixed; inset: 0; pointer-events: none; z-index: 900; overflow: hidden; }
+  .fx-star {
+    position: fixed; width: var(--s); height: var(--s);
+    margin: calc(var(--s) / -2) 0 0 calc(var(--s) / -2);
+    filter: drop-shadow(2px 3px 0 var(--ink));
+  }
+  .fx-star i {
+    display: block; width: 100%; height: 100%;
+    clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+  }
+  @keyframes star-fly {
+    0%   { transform: translate(0, 0) scale(.2) rotate(0deg); opacity: 0; }
+    15%  { opacity: 1; }
+    100% { transform: translate(var(--dx), var(--dy)) scale(1) rotate(var(--rot)); opacity: 0; }
+  }
+  @keyframes star-pop {
+    0%   { transform: scale(.2) rotate(-25deg); opacity: 0; }
+    35%  { transform: scale(1.3) rotate(8deg); opacity: 1; }
+    70%  { transform: scale(1) rotate(0deg); opacity: 1; }
+    100% { transform: scale(1.15) rotate(0deg); opacity: 0; }
+  }
+  .fx-thumb {
+    position: fixed; font-size: 5.5rem; line-height: 1;
+    filter: drop-shadow(3px 5px 0 var(--ink));
+    animation: thumb-drop 1.15s ease forwards;
+  }
+  @keyframes thumb-drop {
+    0%   { transform: translate(-50%, -50%) scale(.2) rotate(0deg); opacity: 0; }
+    18%  { transform: translate(-50%, -50%) scale(1.25) rotate(-14deg); opacity: 1; }
+    32%  { transform: translate(-50%, -50%) scale(1) rotate(12deg); }
+    46%  { transform: translate(-50%, -50%) scale(1) rotate(-9deg); }
+    60%  { transform: translate(-50%, -50%) scale(1) rotate(5deg); opacity: 1; }
+    100% { transform: translate(-50%, 10%) scale(.9) rotate(0deg); opacity: 0; }
+  }
+  .confetti { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1100; }
+
+  /* ---------- Results pop-up ---------- */
+  .results {
+    position: fixed; inset: 0; z-index: 1000;
+    display: grid; place-items: center; padding: 16px;
+    background: rgba(43, 35, 80, .6);
+    overflow-y: auto;
+  }
+  .results[hidden] { display: none; }
+  .results-card {
+    position: relative; width: min(480px, 100%);
+    padding: 22px 20px 20px; text-align: center;
+    animation: card-in .4s cubic-bezier(.2, 1.3, .4, 1);
+  }
+  @keyframes card-in { from { transform: scale(.8) translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+  .res-close {
+    position: absolute; top: 10px; right: 12px;
+    width: 36px; height: 36px; border-radius: 50%;
+    font: 800 1.4rem/1 var(--display); color: var(--ink);
+    background: #fff; border: 3px solid var(--ink); cursor: pointer;
+    display: grid; place-items: center; padding: 0 0 3px;
+  }
+  .res-close:hover { background: var(--sky); }
+  .res-logo { height: 54px; width: auto; display: block; margin: 0 auto 6px; }
+  .results-card h2 {
+    font-family: var(--display); font-weight: 800; font-size: 1.8rem; line-height: 1.1; margin: 0;
+    color: var(--ink);
+  }
+  .res-badge {
+    position: relative; width: 210px; height: 140px; margin: 14px auto 6px;
+    filter: drop-shadow(0 6px 0 var(--ink));
+  }
+  .res-shape, .res-shape::before {
+    position: absolute; inset: 0;
+    clip-path: polygon(0 0, 76% 0, 100% 50%, 76% 100%, 0 100%, 24% 50%);
+  }
+  .res-shape { background: var(--ink); }
+  .res-shape::before { content: ""; inset: 4px; background: var(--teal); }
+  .res-num {
+    position: absolute; inset: 0; padding-right: 8%;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: #fff; font-family: var(--display);
+  }
+  .res-num strong { font-size: 4.4rem; font-weight: 900; line-height: .95; }
+  .res-num span { font-size: 1.1rem; font-weight: 700; }
+  .res-new {
+    display: inline-block; margin: 8px 0 0; padding: 2px 14px;
+    font-family: var(--display); font-weight: 800; color: var(--ink);
+    background: var(--gold); border: 3px solid var(--ink); border-radius: 999px;
+  }
+  .res-new[hidden] { display: none; }
+  .res-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 14px 0; }
+  .res-stats div {
+    background: var(--sky); border: 3px solid var(--ink); border-radius: 14px; padding: 8px 4px;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+  }
+  .res-stats strong { font-family: var(--display); font-weight: 800; font-size: 1.5rem; line-height: 1.1; }
+  .res-stats span { font-size: .78rem; line-height: 1.15; }
+  #shareText {
+    width: 100%; resize: none; font: inherit; font-weight: 400; font-size: .92rem; line-height: 1.4;
+    color: var(--ink); background: #fbfbff;
+    border: 3px dashed var(--ink); border-radius: 14px; padding: 10px 12px; text-align: left;
+  }
+  .res-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-top: 14px; }
+  .res-actions .again { margin-top: 0; }
+  #copyBtn { min-width: 11.5em; }
+  .again.alt { background: var(--teal); margin-left: 8px; }
+  .res-actions .again.alt { margin-left: 0; }
+  .sr {
+    position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
+    clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+  }
+
+  :focus-visible { outline: 4px solid var(--violet); outline-offset: 3px; }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1><img class="logo" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAgNjQiIHdpZHRoPSIxMDAiIGhlaWdodD0iNjQiPjxnIHN0cm9rZT0iIzJiMjM1MCIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWpvaW49InJvdW5kIj48cG9seWdvbiBwb2ludHM9IjMsMyAzMywzIDQzLDMyIDMzLDYxIDMsNjEgMTMsMzIiIGZpbGw9IiMwMDhiYTAiLz48cG9seWdvbiBwb2ludHM9IjMxLDMgNjEsMyA3MSwzMiA2MSw2MSAzMSw2MSA0MSwzMiIgZmlsbD0iIzVkNGZlMCIvPjxwb2x5Z29uIHBvaW50cz0iNTksMyA4OSwzIDk5LDMyIDg5LDYxIDU5LDYxIDY5LDMyIiBmaWxsPSIjZTg2NjNkIi8+PC9nPjwvc3ZnPg==" alt="Trivia Trail logo"><span class="w1">Trivia</span><span class="w2">Trail</span></h1>
+  <p class="tag">Draw a card, answer the question, and move to the next square of that color. Bonus cards skip the question and move you ahead 3 squares. Cross the checkered finish line in as few moves as you can.</p>
+
+  <div class="layout">
+    <section class="sticker board-card" aria-label="Game board">
+      <div class="board" id="board"></div>
+    </section>
+
+    <div class="side">
+      <section class="sticker status" aria-live="polite">
+        <p class="turn" id="turn"></p>
+        <div class="stats">
+          <span class="stat moves" id="movesStat"></span>
+          <span class="stat" id="posStat"></span>
+          <span class="stat" id="scoreStat"></span>
+          <span class="stat" id="bestStat" hidden></span>
+        </div>
+        <div class="cardbox" id="cardbox">
+          <p>No card yet. Press the button to draw one.</p>
+        </div>
+        <button class="draw" id="drawBtn">Draw card</button>
+        <button class="again" id="againBtn" hidden>Play again</button>
+        <button class="again alt" id="resultsBtn" hidden>View results</button>
+      </section>
+
+      <section class="sticker question" id="question" hidden aria-live="polite">
+        <p class="qtext" id="qtext"></p>
+        <div class="answers" id="answers"></div>
+        <p class="feedback" id="feedback"></p>
+      </section>
+    </div>
+  </div>
+</div>
+
+<div id="fx" aria-hidden="true"></div>
+
+<div class="results" id="results" hidden>
+  <div class="sticker results-card" role="dialog" aria-modal="true" aria-labelledby="resTitle">
+    <button class="res-close" id="resClose" aria-label="Close results">&times;</button>
+    <img class="res-logo" id="resLogo" alt="">
+    <h2 id="resTitle">Player 1 crossed the finish line!</h2>
+    <div class="res-badge">
+      <div class="res-shape"></div>
+      <div class="res-num"><strong id="resMoves">0</strong><span id="resMovesLabel">moves</span></div>
+    </div>
+    <p class="res-new" id="resNew" hidden>New best this session!</p>
+    <div class="res-stats">
+      <div><strong id="resCorrect">0</strong><span>correct answers</span></div>
+      <div><strong id="resAcc">0%</strong><span>accuracy</span></div>
+      <div><strong id="resBest">0</strong><span>fewest moves</span></div>
+    </div>
+    <label class="sr" for="shareText">Results you can copy and share</label>
+    <textarea id="shareText" readonly rows="5"></textarea>
+    <div class="res-actions">
+      <button class="again" id="copyBtn">Copy results</button>
+      <button class="again alt" id="resAgain">Play again</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ---------- Config ----------
+  const COLORS = ["#008ba0", "#5d4fe0", "#d9a22c", "#e8663d", "#4caf6d"];
+  const COLOR_NAMES = ["Teal", "Violet", "Gold", "Coral", "Green"];
+  const TRACK_LENGTH = 20;
+  const COLS = 5;
+  const BONUS_CHANCE = 0.15;   // chance a drawn card is a bonus card
+  const BONUS_STEPS = 3;       // squares a bonus card moves you forward
+  const colorOf = i => i % COLORS.length;
+
+  // Question bank. `options` lists the answers; `answer` is the index of the correct
+  // one (the game shuffles the order). Add `fixed: true` to keep the order as written.
+  const BANK = [
+    { q: "What is the capital city of Australia?",
+      options: ["Canberra", "Sydney", "Melbourne", "Perth"], answer: 0 },
+    { q: "Which river is the longest in Africa?",
+      options: ["The Nile", "The Congo", "The Niger", "The Zambezi"], answer: 0 },
+    { q: "Mount Kilimanjaro is in which country?",
+      options: ["Tanzania", "Kenya", "Uganda", "Ethiopia"], answer: 0 },
+    { q: "What is the smallest country in the world by area?",
+      options: ["Vatican City", "Monaco", "San Marino", "Liechtenstein"], answer: 0 },
+    { q: "Which is the largest ocean on Earth?",
+      options: ["Pacific", "Atlantic", "Indian", "Arctic"], answer: 0 },
+    { q: "What is the capital city of Canada?",
+      options: ["Ottawa", "Toronto", "Vancouver", "Montreal"], answer: 0 },
+    { q: "Which is the largest hot desert in the world?",
+      options: ["The Sahara", "The Gobi", "The Kalahari", "The Arabian"], answer: 0 },
+    { q: "Which country has the most natural lakes?",
+      options: ["Canada", "Russia", "Brazil", "Finland"], answer: 0 },
+    { q: "Who directed the 1975 film Jaws?",
+      options: ["Steven Spielberg", "George Lucas", "Martin Scorsese", "Ridley Scott"], answer: 0 },
+    { q: "What colour is the road Dorothy follows in The Wizard of Oz?",
+      options: ["Yellow", "Red", "Silver", "Green"], answer: 0 },
+    { q: "Which band released the album Abbey Road?",
+      options: ["The Beatles", "The Rolling Stones", "Queen", "The Who"], answer: 0 },
+    { q: "What is the cowboy doll called in Toy Story?",
+      options: ["Woody", "Buzz", "Rex", "Hamm"], answer: 0 },
+    { q: "Which Disney film features the song “Let It Go”?",
+      options: ["Frozen", "Tangled", "Moana", "Brave"], answer: 0 },
+    { q: "What is Mario's brother called in the Super Mario games?",
+      options: ["Luigi", "Wario", "Toad", "Yoshi"], answer: 0 },
+    { q: "Who played Jack Dawson in the 1997 film Titanic?",
+      options: ["Leonardo DiCaprio", "Brad Pitt", "Matt Damon", "Johnny Depp"], answer: 0 },
+    { q: "How many keys does a standard modern piano have?",
+      options: ["88", "76", "92", "100"], answer: 0 },
+    { q: "In which year did the Berlin Wall fall?",
+      options: ["1989", "1961", "1979", "1991"], answer: 0 },
+    { q: "Who was the first President of the United States?",
+      options: ["George Washington", "Thomas Jefferson", "John Adams", "Abraham Lincoln"], answer: 0 },
+    { q: "Who was the first person to walk on the Moon?",
+      options: ["Neil Armstrong", "Buzz Aldrin", "Yuri Gagarin", "John Glenn"], answer: 0 },
+    { q: "Which ancient empire built the Colosseum in Rome?",
+      options: ["The Roman Empire", "The Greek Empire", "The Ottoman Empire", "The Persian Empire"], answer: 0 },
+    { q: "In which year did the Titanic sink?",
+      options: ["1912", "1898", "1905", "1921"], answer: 0 },
+    { q: "In which year was the Magna Carta sealed?",
+      options: ["1215", "1066", "1348", "1415"], answer: 0 },
+    { q: "Who was British Prime Minister for most of World War II?",
+      options: ["Winston Churchill", "Neville Chamberlain", "Clement Attlee", "Margaret Thatcher"], answer: 0 },
+    { q: "Which ancient wonder near Cairo is the only one still standing?",
+      options: ["The Great Pyramid of Giza", "The Hanging Gardens", "The Colossus of Rhodes", "The Lighthouse of Alexandria"], answer: 0 },
+    { q: "Who wrote Pride and Prejudice?",
+      options: ["Jane Austen", "Charlotte Brontë", "Emily Dickinson", "Mary Shelley"], answer: 0 },
+    { q: "Who painted the Mona Lisa?",
+      options: ["Leonardo da Vinci", "Michelangelo", "Raphael", "Botticelli"], answer: 0 },
+    { q: "Who wrote the play Romeo and Juliet?",
+      options: ["William Shakespeare", "Christopher Marlowe", "Charles Dickens", "Oscar Wilde"], answer: 0 },
+    { q: "Who painted The Starry Night?",
+      options: ["Vincent van Gogh", "Claude Monet", "Pablo Picasso", "Paul Cézanne"], answer: 0 },
+    { q: "In which city is the Louvre museum?",
+      options: ["Paris", "London", "Rome", "Madrid"], answer: 0 },
+    { q: "Who wrote The Hobbit?",
+      options: ["J.R.R. Tolkien", "C.S. Lewis", "Roald Dahl", "J.K. Rowling"], answer: 0 },
+    { q: "Who wrote the novel Nineteen Eighty-Four?",
+      options: ["George Orwell", "Aldous Huxley", "Ray Bradbury", "H.G. Wells"], answer: 0 },
+    { q: "Who sculpted the marble statue of David in Florence?",
+      options: ["Michelangelo", "Donatello", "Bernini", "Rodin"], answer: 0 },
+    { q: "What is the chemical symbol for gold?",
+      options: ["Au", "Ag", "Go", "Gd"], answer: 0 },
+    { q: "Which planet is closest to the Sun?",
+      options: ["Mercury", "Venus", "Mars", "Earth"], answer: 0 },
+    { q: "What is the hardest naturally occurring substance?",
+      options: ["Diamond", "Quartz", "Steel", "Topaz"], answer: 0 },
+    { q: "Which gas do plants absorb from the air for photosynthesis?",
+      options: ["Carbon dioxide", "Oxygen", "Nitrogen", "Hydrogen"], answer: 0 },
+    { q: "How many legs does an insect have?",
+      options: ["Six", "Four", "Eight", "Ten"], answer: 0 },
+    { q: "Which is the largest planet in our solar system?",
+      options: ["Jupiter", "Saturn", "Neptune", "Earth"], answer: 0 },
+    { q: "What is the largest organ of the human body?",
+      options: ["Skin", "Liver", "Heart", "Lungs"], answer: 0 },
+    { q: "At sea level, at what temperature does water boil?",
+      options: ["100°C", "90°C", "80°C", "120°C"], answer: 0 }
+  ];
+
+  // ---------- State ----------
+  const players = [{ name: "Player 1", pos: 0, score: 0, moves: 0, asked: 0, bonuses: 0 }];
+  let turnIndex = 0;
+  let phase = "idle"; // idle | asking | moving | won
+  let card = null;    // { colors: [idx] }
+  let deck = [];
+  let best = null;    // fewest moves this session
+
+  const $ = id => document.getElementById(id);
+  const boardEl = $("board"), pieceEl = document.createElement("div");
+  const squares = [];
+
+  const shuffle = arr => {
+    const a = arr.slice();
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+  };
+  const sleep = ms => new Promise(r => setTimeout(r, matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : ms));
+  const plural = (n, word) => n + " " + word + (n === 1 ? "" : "s");
+
+  // ---------- Build board ----------
+  function buildBoard() {
+    for (let i = 0; i < TRACK_LENGTH; i++) {
+      const r = Math.floor(i / COLS);
+      const k = i % COLS;
+      const col = r % 2 === 0 ? k : COLS - 1 - k; // winding path
+      const el = document.createElement("div");
+      el.className = "sq c" + colorOf(i) + (r % 2 === 1 ? " left" : "") + (i === TRACK_LENGTH - 1 ? " finish" : "");
+      el.style.gridRow = r + 1;
+      el.style.gridColumn = col + 1;
+      if (i === TRACK_LENGTH - 1) el.title = "Finish line";
+      el.innerHTML = '<div class="chev"></div>' +
+        (i === 0 ? '<span class="flag" title="Start">\u2B50</span>' : "");
+      boardEl.appendChild(el);
+      squares.push(el);
+    }
+    pieceEl.className = "piece";
+    pieceEl.innerHTML = '<div class="name"></div><div class="body"><div class="smile"></div></div>';
+    boardEl.appendChild(pieceEl);
+  }
+
+  function placePiece(pos) {
+    const sq = squares[pos];
+    pieceEl.style.left = sq.offsetLeft + sq.offsetWidth / 2 + "px";
+    pieceEl.style.top = sq.offsetTop + sq.offsetHeight / 2 + 14 + "px";
+  }
+
+  // ---------- Rendering ----------
+  const active = () => players[turnIndex];
+
+  function renderStatus() {
+    const p = active();
+    pieceEl.querySelector(".name").textContent = p.name;
+    $("turn").innerHTML = phase === "won"
+      ? "<em>" + p.name + "</em> finished!"
+      : "It\u2019s <em>" + p.name + "</em>\u2019s turn";
+    $("movesStat").textContent = "Moves: " + p.moves;
+    $("posStat").textContent = "Square " + p.pos + " of " + (TRACK_LENGTH - 1);
+    $("scoreStat").textContent = "Correct: " + p.score;
+    $("bestStat").hidden = best === null;
+    if (best !== null) $("bestStat").textContent = "Fewest moves: " + best;
+    $("drawBtn").disabled = phase !== "idle";
+    $("againBtn").hidden = phase !== "won";
+    $("resultsBtn").hidden = phase !== "won";
+    $("drawBtn").hidden = phase === "won";
+  }
+
+  function chipHTML(i) {
+    return '<span class="chip' + (i === 2 ? " gold-chip" : "") + '" style="background:' + COLORS[i] + '">' + COLOR_NAMES[i] + "</span>";
+  }
+
+  function showCard() {
+    const box = $("cardbox");
+    if (card.bonus) {
+      box.innerHTML = "<p><strong>Bonus card!</strong> Move forward " + BONUS_STEPS + " squares. No question this time.</p>" +
+        '<div class="chips"><span class="chip" style="background:var(--ink)">Bonus +' + BONUS_STEPS + "</span></div>";
+    } else {
+      box.innerHTML = "<p><strong>Card drawn:</strong> next " + COLOR_NAMES[card.colors[0]].toLowerCase() + " square</p>" +
+        '<div class="chips">' + chipHTML(card.colors[0]) + "</div>";
+    }
+  }
+
+  // ---------- Game flow ----------
+  function drawCard() {
+    if (phase !== "idle") return;
+    const p = active();
+    p.moves++;                   // every card drawn counts as one move
+    if (Math.random() < BONUS_CHANCE) {
+      card = { bonus: true };
+      phase = "moving";
+      showCard();
+      renderStatus();
+      playBonus(p);
+      return;
+    }
+    card = { colors: [Math.floor(Math.random() * COLORS.length)] };
+    phase = "asking";
+    showCard();
+    ask();
+    renderStatus();
+  }
+
+  // Bonus card: no question, move forward automatically
+  async function playBonus(p) {
+    p.bonuses++;
+    await sleep(900);            // let the player read the card
+    const target = Math.min(p.pos + BONUS_STEPS, TRACK_LENGTH - 1);
+    squares[target].classList.add("target");
+    await moveTo(p, target);
+    squares[target].classList.remove("target");
+    starBurst(pieceEl.querySelector(".body"), true);
+    if (p.pos >= TRACK_LENGTH - 1) { await finishGame(p); return; }
+    await sleep(700);
+    endTurn();
+  }
+
+  async function finishGame(p) {
+    phase = "won";
+    const prevBest = best;
+    if (best === null || p.moves < best) best = p.moves;
+    lastResult = { moves: p.moves, correct: p.score, asked: p.asked, bonuses: p.bonuses,
+                   newBest: prevBest !== null && p.moves < prevBest };
+    $("cardbox").innerHTML =
+      "<p><strong>" + p.name + " crossed the finish line in " + plural(p.moves, "move") + ".</strong></p>" +
+      "<p>Fewest moves this session: " + best + ". Can you beat it?</p>";
+    renderStatus();
+    confetti();
+    await sleep(1100);
+    if (phase === "won") openResults();
+  }
+
+  function nextQuestion() {
+    if (deck.length === 0) deck = shuffle(BANK);
+    return deck.pop();
+  }
+
+  function ask() {
+    const item = nextQuestion();
+    const opts = item.options.map((text, i) => ({ text, correct: i === item.answer }));
+    const shown = item.fixed ? opts : shuffle(opts);
+
+    $("question").hidden = false;
+    $("qtext").textContent = item.q;
+    $("feedback").textContent = "";
+    const ansEl = $("answers");
+    ansEl.innerHTML = "";
+    shown.forEach(o => {
+      const b = document.createElement("button");
+      b.className = "ans";
+      b.textContent = o.text;
+      b.dataset.correct = o.correct ? "1" : "";
+      b.addEventListener("click", () => resolve(b, o.correct));
+      ansEl.appendChild(b);
+    });
+    ansEl.firstChild.focus();
+  }
+
+  async function resolve(btn, correct) {
+    if (phase !== "asking") return;
+    phase = "moving";
+    active().asked++;
+    let rightText = "";
+    document.querySelectorAll(".ans").forEach(b => {
+      b.disabled = true;
+      if (b.dataset.correct) { b.classList.add("right"); rightText = b.textContent; }
+    });
+    renderStatus();
+    const p = active();
+
+    if (!correct) {
+      btn.classList.add("wrong");
+      thumbsDown();
+      $("feedback").textContent = "Not quite. The answer was \u201C" + rightText + ".\u201D " + p.name + " stays on square " + p.pos + ".";
+      await sleep(1400);
+      endTurn();
+      return;
+    }
+
+    p.score++;
+    starBurst(btn);
+    const target = nextMatch(p.pos, card.colors);
+    if (target === -1) {
+      $("feedback").textContent = "Correct! No matching square is left, so " + p.name + " dashes to the finish line.";
+      await moveTo(p, TRACK_LENGTH - 1);
+    } else {
+      $("feedback").textContent = "Correct! " + p.name + " moves to square " + target + ".";
+      squares[target].classList.add("target");
+      await moveTo(p, target);
+      squares[target].classList.remove("target");
+    }
+    if (p.pos >= TRACK_LENGTH - 1) { await finishGame(p); return; }
+    await sleep(500);
+    endTurn();
+  }
+
+  function nextMatch(from, colors) {
+    for (let i = from + 1; i < TRACK_LENGTH; i++) {
+      if (colors.includes(colorOf(i))) return i;
+    }
+    return -1;
+  }
+
+  async function moveTo(p, target) {
+    while (p.pos < target) {
+      p.pos++;
+      placePiece(p.pos);
+      pieceEl.classList.remove("hop"); void pieceEl.offsetWidth; pieceEl.classList.add("hop");
+      renderStatus();
+      await sleep(220);
+    }
+  }
+
+  function endTurn() {
+    turnIndex = (turnIndex + 1) % players.length;
+    phase = "idle";
+    card = null;
+    $("question").hidden = true;
+    $("cardbox").innerHTML = "<p>Ready when you are. Draw another card.</p>";
+    renderStatus();
+    $("drawBtn").focus();
+  }
+
+  function reset() {
+    players.forEach(p => { p.pos = 0; p.score = 0; p.moves = 0; p.asked = 0; p.bonuses = 0; });
+    turnIndex = 0; phase = "idle"; card = null; deck = []; lastResult = null;
+    $("results").hidden = true;
+    $("question").hidden = true;
+    $("cardbox").innerHTML = "<p>No card yet. Press the button to draw one.</p>";
+    placePiece(0);
+    renderStatus();
+    $("drawBtn").focus();
+  }
+
+  // ---------- Effects ----------
+  const fx = $("fx");
+  const reduceMotion = () => matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
+
+  function addFx(el, ms) {
+    fx.appendChild(el);
+    setTimeout(() => el.remove(), ms);
+  }
+
+  function starEl(size, color) {
+    const w = document.createElement("div");
+    w.className = "fx-star";
+    w.style.setProperty("--s", size + "px");
+    const i = document.createElement("i");
+    i.style.background = color;
+    w.appendChild(i);
+    return w;
+  }
+
+  // Star burst on a correct answer
+  function starBurst(fromEl, centered) {
+    if (reduceMotion()) return;
+    const r = fromEl.getBoundingClientRect();
+    const cx = clamp(centered ? r.left + r.width / 2 : r.right - 48, 60, window.innerWidth - 60);
+    const cy = clamp(r.top + r.height / 2, 80, window.innerHeight - 80);
+
+    const big = starEl(84, "#ffd75e");
+    big.style.left = cx + "px";
+    big.style.top = cy + "px";
+    big.style.animation = "star-pop 1000ms ease-out forwards";
+    addFx(big, 1100);
+
+    const colors = ["#d9a22c", "#ffd75e", "#ffffff", "#ffd75e"];
+    const n = 12;
+    for (let i = 0; i < n; i++) {
+      const ang = (i / n) * Math.PI * 2 + Math.random() * 0.4;
+      const dist = 90 + Math.random() * 90;
+      const dur = 800 + Math.random() * 300;
+      const s = starEl(16 + Math.random() * 16, colors[i % colors.length]);
+      s.style.left = cx + "px";
+      s.style.top = cy + "px";
+      s.style.setProperty("--dx", Math.cos(ang) * dist + "px");
+      s.style.setProperty("--dy", Math.sin(ang) * dist + "px");
+      s.style.setProperty("--rot", (Math.random() * 360 - 180) + "deg");
+      s.style.animation = "star-fly " + dur + "ms cubic-bezier(.2,.8,.3,1) forwards";
+      addFx(s, dur + 100);
+    }
+  }
+
+  // Thumbs-down on a wrong answer
+  function thumbsDown() {
+    if (reduceMotion()) return;
+    const r = $("question").getBoundingClientRect();
+    const t = document.createElement("div");
+    t.className = "fx-thumb";
+    t.textContent = "\uD83D\uDC4E";
+    t.style.left = clamp(r.left + r.width / 2, 60, window.innerWidth - 60) + "px";
+    t.style.top = clamp(r.top + r.height / 2, 90, window.innerHeight - 90) + "px";
+    addFx(t, 1300);
+  }
+
+  // Confetti pop on finishing
+  function confetti() {
+    if (reduceMotion()) return;
+    const W = window.innerWidth, H = window.innerHeight;
+    const dpr = window.devicePixelRatio || 1;
+    const cv = document.createElement("canvas");
+    cv.className = "confetti";
+    cv.setAttribute("aria-hidden", "true");
+    cv.width = W * dpr;
+    cv.height = H * dpr;
+    document.body.appendChild(cv);
+    const ctx = cv.getContext("2d");
+    ctx.scale(dpr, dpr);
+
+    const palette = COLORS.concat(["#ffffff", "#ffd75e"]);
+    const scale = clamp(H / 800, 0.7, 1.4);
+    const rand = (a, b) => a + Math.random() * (b - a);
+    const rad = d => d * Math.PI / 180;
+    const parts = [];
+
+    function launch(x, y, n, a0, a1, v0, v1) {
+      for (let i = 0; i < n; i++) {
+        const a = rand(a0, a1), v = rand(v0, v1) * scale;
+        parts.push({
+          x, y, vx: Math.cos(a) * v, vy: Math.sin(a) * v,
+          w: rand(7, 14), h: rand(5, 9),
+          rot: rand(0, Math.PI * 2), vr: rand(-0.3, 0.3),
+          flip: rand(0, Math.PI * 2), vf: rand(0.1, 0.3),
+          color: palette[Math.floor(Math.random() * palette.length)],
+          round: Math.random() < 0.2,
+          life: 0, max: rand(150, 240)
+        });
+      }
+    }
+
+    let launchedAll = false;
+    launch(0, H, 80, rad(-80), rad(-50), 15, 27);      // left cannon
+    launch(W, H, 80, rad(-130), rad(-100), 15, 27);    // right cannon
+    setTimeout(() => launch(W / 2, H * 0.35, 90, 0, Math.PI * 2, 4, 14), 400);   // center pop
+    setTimeout(() => {
+      launch(0, H, 50, rad(-80), rad(-55), 14, 24);
+      launch(W, H, 50, rad(-125), rad(-100), 14, 24);
+      launchedAll = true;
+    }, 900);
+
+    let last = performance.now();
+    function frame(now) {
+      const dt = Math.min(2.5, (now - last) / 16.67);
+      last = now;
+      ctx.clearRect(0, 0, W, H);
+      for (let i = parts.length - 1; i >= 0; i--) {
+        const p = parts[i];
+        p.vy += 0.35 * dt;
+        p.vx *= Math.pow(0.985, dt);
+        p.vy *= Math.pow(0.99, dt);
+        p.x += p.vx * dt + Math.sin(p.flip) * 0.6;
+        p.y += p.vy * dt;
+        p.rot += p.vr * dt;
+        p.flip += p.vf * dt;
+        p.life += dt;
+        if (p.life >= p.max || p.y > H + 30) { parts.splice(i, 1); continue; }
+        ctx.save();
+        ctx.globalAlpha = p.life > p.max - 40 ? Math.max(0, (p.max - p.life) / 40) : 1;
+        ctx.translate(p.x, p.y);
+        ctx.rotate(p.rot);
+        ctx.scale(1, Math.cos(p.flip));
+        ctx.fillStyle = p.color;
+        if (p.round) { ctx.beginPath(); ctx.arc(0, 0, p.h / 1.4, 0, Math.PI * 2); ctx.fill(); }
+        else ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+        ctx.restore();
+      }
+      if (launchedAll && parts.length === 0) { cv.remove(); return; }
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- Results pop-up ----------
+  let lastResult = null;
+  let copyTimer = null;
+
+  const accuracy = r => r.asked ? Math.round((r.correct / r.asked) * 100) : null;
+
+  function resultsText(r) {
+    const pct = accuracy(r);
+    let t = "Trivia Trail results\n" +
+      "Finished in " + plural(r.moves, "move") + "\n";
+    if (r.asked) t += "Correct answers: " + r.correct + " of " + r.asked + " (" + pct + "%)\n";
+    if (r.bonuses) t += "Bonus cards: " + r.bonuses + "\n";
+    t += "Fewest moves this session: " + best + "\n" + "Can you beat it?";
+    return t;
+  }
+
+  function openResults() {
+    if (!lastResult) return;
+    const r = lastResult, p = active();
+    const pct = accuracy(r);
+    $("resLogo").src = document.querySelector(".logo").src;
+    $("resTitle").textContent = p.name + " crossed the finish line!";
+    $("resMoves").textContent = r.moves;
+    $("resMovesLabel").textContent = r.moves === 1 ? "move" : "moves";
+    $("resNew").hidden = !r.newBest;
+    $("resCorrect").textContent = r.correct + " of " + r.asked;
+    $("resAcc").textContent = pct === null ? "n/a" : pct + "%";
+    $("resBest").textContent = best;
+    $("shareText").value = resultsText(r);
+    $("copyBtn").textContent = "Copy results";
+    $("results").hidden = false;
+    $("copyBtn").focus();
+  }
+
+  function closeResults() {
+    if ($("results").hidden) return;
+    $("results").hidden = true;
+    const target = phase === "won" ? $("resultsBtn") : $("drawBtn");
+    if (!target.hidden) target.focus();
+  }
+
+  async function copyResults() {
+    const ta = $("shareText");
+    let ok = false;
+    try { await navigator.clipboard.writeText(ta.value); ok = true; } catch (e) { /* fall back below */ }
+    if (!ok) {
+      ta.focus(); ta.select();
+      try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    }
+    const btn = $("copyBtn");
+    if (ok) {
+      btn.textContent = "Copied!";
+    } else {
+      btn.textContent = "Press Ctrl/Cmd+C";
+      ta.focus(); ta.select();
+    }
+    clearTimeout(copyTimer);
+    copyTimer = setTimeout(() => { btn.textContent = "Copy results"; }, 2500);
+  }
+
+  function onResultsKey(e) {
+    if ($("results").hidden) return;
+    if (e.key === "Escape") { closeResults(); return; }
+    if (e.key === "Tab") {
+      const f = Array.from($("results").querySelectorAll("button, textarea")).filter(el => !el.disabled);
+      const first = f[0], lastEl = f[f.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); lastEl.focus(); }
+      else if (!e.shiftKey && document.activeElement === lastEl) { e.preventDefault(); first.focus(); }
+    }
+  }
+
+  // ---------- Init ----------
+  buildBoard();
+  placePiece(0);
+  renderStatus();
+  $("drawBtn").addEventListener("click", drawCard);
+  $("againBtn").addEventListener("click", reset);
+  $("resultsBtn").addEventListener("click", openResults);
+  $("copyBtn").addEventListener("click", copyResults);
+  $("resClose").addEventListener("click", closeResults);
+  $("resAgain").addEventListener("click", () => { $("results").hidden = true; reset(); });
+  $("results").addEventListener("click", e => { if (e.target === $("results")) closeResults(); });
+  document.addEventListener("keydown", onResultsKey);
+  window.addEventListener("resize", () => placePiece(active().pos));
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => placePiece(active().pos));
+})();
+</script>
+</body>
+</html>
